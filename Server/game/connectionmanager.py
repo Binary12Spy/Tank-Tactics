@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import WebSocket
 
 class ConnectionManager:
@@ -20,5 +21,10 @@ class ConnectionManager:
         await self.connections[user_id].send_text(message)
         
     async def broadcast(self, message: str):
-        for connection in self.connections.values():
-            await connection.send_text(message)
+        async def send_message(connection):
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                print(f"Failed to send message: {e}")
+
+        await asyncio.gather(*(send_message(connection) for connection in self.connections.values()))

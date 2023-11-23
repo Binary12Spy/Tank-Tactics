@@ -2,9 +2,18 @@ import random
 from sqlmodel import Field, Session, SQLModel, create_engine
 
 engine = create_engine("sqlite:///tank-tactics.db")
-session = Session(engine)
+
+#region Database Models
+class GameBoard(SQLModel, table=True):
+    __tablename__ = "GameBoard"
+    
+    id: str = Field(default=None, primary_key=True)
+    width: int = 30
+    height: int = 30
 
 class UserAccount(SQLModel, table=True):
+    __tablename__ = "UserAccounts"
+    
     id: str = Field(default=None, primary_key=True)
     username: str
     passphrase: str
@@ -13,9 +22,11 @@ class UserAccount(SQLModel, table=True):
     admin: bool = False
     
 class Player(SQLModel, table=True):
+    __tablename__ = "Players"
+    
     id: str = Field(default=None, primary_key=True)
-    x: int
-    y: int
+    location_x: int
+    location_y: int
     health: int = 3
     action_tokens: int = 1
     range: int = 1
@@ -23,83 +34,85 @@ class Player(SQLModel, table=True):
     has_voted: bool = False
     received_votes: int = 0
     
-class Log(SQLModel, table=True):
+class EventLog(SQLModel, table=True):
+    __tablename__ = "EventLog"
+    
     id: str = Field(default=None, primary_key=True)
     player_id: str
     action: str
     target_id: str = Field(default=None, nullable=True)
+    target_location: str = Field(default=None, nullable=True)
     timestamp: int
-    
+#endregion
+
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
-        
-def get_user_account(username: str):
-    return session.get(UserAccount, username)
 
-def get_user_account_by_id(id: str):
-    user_account = session.get(UserAccount, id)
-    return user_account
+#region GameBoard Functions
+def get_board_dimensions():
+    with Session(engine) as session:
+        board = session.get(GameBoard, "1")
+        return (board.width, board.height)
+#endregion
+
+#region User Account Functions
+def get_user_account_id(id: str):
+    with Session(engine) as session:
+        user_account = session.get(UserAccount, id)
+        return user_account
 
 def get_user_accounts():
-    user_accounts = session.query(UserAccount).all()
-    return user_accounts
+    with Session(engine) as session:
+        user_accounts = session.query(UserAccount).all()
+        return user_accounts
 
 def create_user_account(username: str, passphrase: str, id: str):
-    user_account = UserAccount(username=username, passphrase=passphrase, id=id)
-    session.add(user_account)
-    session.commit()
-    session.refresh(user_account)
-    return user_account
+    with Session(engine) as session:
+        user_account = UserAccount(username=username, passphrase=passphrase, id=id)
+        session.add(user_account)
+        session.commit()
+        session.refresh(user_account)
+        return user_account
 
 def patch_user_account(user_account: UserAccount):
-    session.merge(user_account)
-    session.commit()
-    session.refresh(user_account)
-    return user_account
+    with Session(engine) as session:
+        session.merge(user_account)
+        session.commit()
+        session.refresh(user_account)
+        return user_account
+#endregion
 
+#region Player Functions
 def get_player(id: str):
-    return session.get(Player, id)
-
+    with Session(engine) as session:
+        player = session.get(Player, id)
+        return player
+    
 def get_players():
-    return session.query(Player).all()
-
-def create_player(x: int, y: int):
-    player = Player(x=x, y=y)
-    session.add(player)
-    session.commit()
-    session.refresh(player)
-    return player
-
-def update_player(player: Player):
-    session.add(player)
-    session.commit()
-    session.refresh(player)
-    return player
-
-def delete_player(player: Player):
-    session.delete(player)
-    session.commit()
-    return True
-
-def delete_all_players():
-    session.query(Player).delete()
-    session.commit()
-    return True
-
-def delete_user_account(user_account: UserAccount):
-    session.delete(user_account)
-    session.commit()
-    return True
-
-def delete_all_user_accounts():
-    session.query(UserAccount).delete()
-    session.commit()
-    return True
-
-def delete_all():
-    delete_all_players(session)
-    delete_all_user_accounts(session)
-    return True
+    with Session(engine) as session:
+        players = session.query(Player).all()
+        return players
+    
+def create_player(id: str, x: int, y: int):
+    with Session(engine) as session:
+        player = Player(id=id, x=x, y=y)
+        session.add(player)
+        session.commit()
+        session.refresh(player)
+        return player
+    
+def patch_player(player: Player):
+    with Session(engine) as session:
+        session.merge(player)
+        session.commit()
+        return player
+    
+def get_player_at_coordinates(x: int, y: int):
+    with Session(engine) as session:
+        player = session.query(Player).filter(Player.location_x == x).filter(Player.location_y == y).first()
+        return player
+    
+#endregion
 
 try:
     create_db_and_tables()

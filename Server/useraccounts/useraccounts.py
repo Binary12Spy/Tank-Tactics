@@ -11,7 +11,7 @@ def register_user_account(username, password):
     return create_user_account(username, hash_password(password), str(uuid4()))
 
 def update_user_account(id, updated_user):
-    user = get_user_account_by_id(id)
+    user = get_user_account(id)
     if not user:
         return False
     user.username = updated_user.username
@@ -31,7 +31,7 @@ def delete_user_account(user):
     return False
 
 def get_user_account(user_id):
-    user = get_user_account_by_id(user_id)
+    user = get_user_account_id(user_id)
     if not user:
         return False
     return {"id": user.id, "username": user.username, "primary_color": user.color_primary, "secondary_color": user.color_secondary}

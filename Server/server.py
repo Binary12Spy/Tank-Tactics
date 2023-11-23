@@ -54,7 +54,18 @@ def update_user(request: Request, updated_user: UpdatedUser):
     return get_user_account(user_id)
 #endregion
 
-#region Websocket Endpoint
+#region Game Endpoints
+@app.post("/game/start", tags=["Game"])
+def start_game(request: Request):
+    user_id = verify_token(str(request.cookies.get("token")))
+    if not user_id:
+        return False
+    user = get_user_account(user_id)
+    if not user.admin:
+        return False
+    game_keeper.place_players_on_board()
+    return True
+
 @app.websocket("/game")
 async def websocket_endpoint(websocket: WebSocket):
     user_id = verify_token(str(websocket.cookies.get("token")))
@@ -66,10 +77,10 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             if not verify_token(str(websocket.cookies.get("token"))):
-                await websocket.close()
+                await websocket.send(False)
                 await game_keeper.disconnect(user_id)
                 return
-            await game_keeper.handle_message(websocket, data)
+            await game_keeper.handle_message(user_id, data)
     except:
         await game_keeper.disconnect(user_id)
 #endregion
