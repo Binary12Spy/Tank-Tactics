@@ -1,5 +1,4 @@
 import random
-from typing import Optional
 from sqlmodel import Field, Session, SQLModel, create_engine
 
 engine = create_engine("sqlite:///tank-tactics.db")
@@ -9,7 +8,6 @@ class UserAccount(SQLModel, table=True):
     id: str = Field(default=None, primary_key=True)
     username: str
     passphrase: str
-    token: Optional[str] = None
     color_primary: str = "#" + hex(random.randrange(0, 2**24))[2:].upper()
     color_secondary: str = "#" + hex(random.randrange(0, 2**24))[2:].upper()
     admin: bool = False
@@ -25,6 +23,13 @@ class Player(SQLModel, table=True):
     has_voted: bool = False
     received_votes: int = 0
     
+class Log(SQLModel, table=True):
+    id: str = Field(default=None, primary_key=True)
+    player_id: str
+    action: str
+    target_id: str = Field(default=None, nullable=True)
+    timestamp: int
+    
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
         
@@ -32,22 +37,21 @@ def get_user_account(username: str):
     return session.get(UserAccount, username)
 
 def get_user_account_by_id(id: str):
-    return session.get(UserAccount, id)
-
-def get_user_account_by_token(token: str):
-    return session.query(UserAccount).filter(UserAccount.token == token).first()
+    user_account = session.get(UserAccount, id)
+    return user_account
 
 def get_user_accounts():
-    return session.query(UserAccount).all()
+    user_accounts = session.query(UserAccount).all()
+    return user_accounts
 
-def create_user_account(username: str, passphrase: str, id: str, token: str):
-    user_account = UserAccount(username=username, passphrase=passphrase, id=id, token=token)
+def create_user_account(username: str, passphrase: str, id: str):
+    user_account = UserAccount(username=username, passphrase=passphrase, id=id)
     session.add(user_account)
     session.commit()
     session.refresh(user_account)
     return user_account
 
-def update_user_account(user_account: UserAccount):
+def patch_user_account(user_account: UserAccount):
     session.merge(user_account)
     session.commit()
     session.refresh(user_account)

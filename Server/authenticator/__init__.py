@@ -1,1 +1,1 @@
-from authenticator.authenticator import authenticate_user, register_user, verify_token, hash_password
+from authenticator.authenticator import authenticate_user, hash_password, verify_password, generate_token, verify_token
