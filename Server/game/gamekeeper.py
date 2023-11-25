@@ -43,3 +43,7 @@ class GameKeeper:
         else:
             await self.broadcast_game_state()
 #endregion
+
+#regioan Helper Functions
+    def player_id_from_game_id(self, user_id, game_id):
+        return db.get_player_id_from_game_id(user_id, game_id)

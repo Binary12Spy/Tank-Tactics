@@ -116,6 +116,11 @@ def get_players_in_game(game_id: str):
     with Session(engine) as session:
         players = session.query(Player).filter(Player.game_id == game_id).all()
         return players
+    
+def get_player_id_from_game_id(user_id: str, game_id: str):
+    with Session(engine) as session:
+        player = session.query(Player).filter(Player.game_id == game_id).filter(Player.user_id == user_id).first()
+        return player.id
 #endregion
 
 # Create the database and tables if they don't already exist

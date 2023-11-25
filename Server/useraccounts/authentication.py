@@ -15,7 +15,7 @@ JWT_EXPIRES_IN = os.environ.get("JWT_EXPIRES_IN") # In hours
 def authenticate_user(username: str, password: str):
     users = db.get_user_accounts()
     for user in users:
-        if user.username == username and verify_password(password, user.passphrase):
+        if user.username == username and verify_password(password, user.hashed_password):
             return generate_token(user.id)
     return False
 
@@ -26,11 +26,7 @@ def verify_token(user_token):
         return False
     except jwt.InvalidTokenError:
         return False
-    users = db.get_user_accounts()
-    for user in users:
-        if(str(user.id) == token.get("user_id")):
-            return user.id
-    return False
+    return token.get("user_id")
 #endregion
 
 #region Helper Functions

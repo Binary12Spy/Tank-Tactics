@@ -91,8 +91,10 @@ def join_game(request: Request, lobby_id: str):
     if not user_id:
         return False
     game_keeper.join_game(user_id, lobby_id)
+#endregion
 
-@app.delete("/game/{game_id}", tags=["Game Management"])
+#region Admin Endpoints
+@app.delete("/game/{game_id}", tags=["Game Management", "Admin"])
 def delete_game(request: Request, game_id: str):
     user_id = verify_token(str(request.cookies.get("token")))
     if not user_id:
@@ -109,27 +111,25 @@ def start_game(request: Request, game_id: str):
     return success
 #endregion
 
-#region Admin Endpoints
-#endregion
-
 #region Game Websocket Endpoint
-@app.websocket("/game")
-async def websocket_endpoint(websocket: WebSocket):
+@app.websocket("/game/{game_id}")
+async def websocket_endpoint(websocket: WebSocket, game_id: str):
     user_id = verify_token(str(websocket.cookies.get("token")))
     if not user_id:
         await websocket.close()
         return
-    await game_keeper.connect(websocket, user_id)
+    player_id = game_keeper.player_id_from_game_id(user_id, game_id)
+    await game_keeper.connect(websocket, player_id)
     try:
         while True:
             data = await websocket.receive_text()
             if not verify_token(str(websocket.cookies.get("token"))):
                 await websocket.send(False)
-                await game_keeper.disconnect(user_id)
+                await game_keeper.disconnect(player_id)
                 return
-            await game_keeper.handle_message(user_id, data)
+            await game_keeper.handle_message(player_id, data)
     except:
-        await game_keeper.disconnect(user_id)
+        await game_keeper.disconnect(player_id)
 #endregion
 
 if __name__ == "__main__":

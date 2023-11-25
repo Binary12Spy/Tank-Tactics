@@ -41,9 +41,3 @@ def get_user_accounts():
     users = db.get_user_accounts()
     return [{"id": user.id, "username": user.username, "primary_color": user.color_primary, "secondary_color": user.color_secondary} for user in users]
 #endregion
-
-def is_admin(user_id):
-    user = db.get_user_account_by_id(user_id)
-    if not user:
-        return False
-    return user.admin
