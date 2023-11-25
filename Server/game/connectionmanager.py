@@ -20,15 +20,14 @@ class ConnectionManager:
 #endregion
 
 #region Message Sending Functions
-    async def send_personal_message(self, message: str, user_id: int):
-        await self.connections[user_id].send_text(message)
+    async def send_personal_message(self, message: str, player_id: int):
+        await self.connections[player_id].send_text(message)
         
-    async def broadcast(self, message: str):
+    async def broadcast(self, player_ids, message: str):
         async def send_message(connection):
             try:
                 await connection.send_text(message)
             except Exception as e:
                 print(f"Failed to send message: {e}")
-        await asyncio.gather(*(send_message(connection) for connection in self.connections.values()))
-        
+        await asyncio.gather(*[send_message(self.connections[player_id]) for player_id in player_ids])
 #endregion

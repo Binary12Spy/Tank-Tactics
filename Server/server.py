@@ -14,6 +14,7 @@ game_keeper = GameKeeper()
 #Load Environment Variables
 load_dotenv()
 SERVER_PORT = os.environ.get("SERVER_PORT")
+DEBUG = (os.getenv('DEBUG', 'False') == 'True')
 
 #region FastAPI Data Models
 class Credentials(BaseModel):
@@ -75,44 +76,43 @@ def update_user(request: Request, updated_user: UserAccount):
     return get_user_account(user_id)
 #endregion
 
-#region Admin Endpoints
-@app.get("/admin/user", tags=["Admin"])
-def get_user(request: Request, id: str):
-    print(str(request.cookies.get("token")))
+#region Game Management Endpoints
+@app.post("/create-game", tags=["Game Management"])
+def create_game(request: Request):
     user_id = verify_token(str(request.cookies.get("token")))
-    if not user_id or not is_admin(user_id):
+    if not user_id:
         return False
-    if not id:
-        return False
-    user_account = get_user_account(id)
-    return user_account
+    game_id = game_keeper.create_game(user_id)
+    return game_id
 
-@app.patch("/admin/user", tags=["Admin"])
-def update_user(request: Request, updated_user: UserAccount):
+@app.post("/join-game/{lobby_id}", tags=["Game Management"])
+def join_game(request: Request, lobby_id: str):
     user_id = verify_token(str(request.cookies.get("token")))
-    if not is_admin(user_id) or not user_id:
+    if not user_id:
         return False
-    update_user_account(updated_user.id, updated_user)
-    return get_user_account(updated_user.id)
+    game_keeper.join_game(user_id, lobby_id)
 
-@app.get("/admin/users", tags=["Admin"])
-def get_users(request: Request):
+@app.delete("/game/{game_id}", tags=["Game Management"])
+def delete_game(request: Request, game_id: str):
     user_id = verify_token(str(request.cookies.get("token")))
-    if not is_admin(user_id) or not user_id:
+    if not user_id:
         return False
-    users = get_user_accounts()
-    return users
+    success = game_keeper.delete_game(user_id, game_id)
+    return success
 
-@app.delete("/user", tags=["Account"])
-def delete_user(id: str, request: Request):
+@app.post("/start-game/{game_id}", tags=["Game Management"])
+def start_game(request: Request, game_id: str):
     user_id = verify_token(str(request.cookies.get("token")))
-    if not user_id or not is_admin(user_id):
+    if not user_id:
         return False
-    delete_user_account(id)
-    return True
+    success = game_keeper.start_game(user_id, game_id)
+    return success
 #endregion
 
-#region Game Endpoints
+#region Admin Endpoints
+#endregion
+
+#region Game Websocket Endpoint
 @app.websocket("/game")
 async def websocket_endpoint(websocket: WebSocket):
     user_id = verify_token(str(websocket.cookies.get("token")))
@@ -133,4 +133,4 @@ async def websocket_endpoint(websocket: WebSocket):
 #endregion
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=int(SERVER_PORT), reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=int(SERVER_PORT), reload=DEBUG)
