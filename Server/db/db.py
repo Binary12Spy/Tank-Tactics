@@ -56,7 +56,7 @@ def get_board_dimensions():
 #endregion
 
 #region User Account Functions
-def get_user_account_id(id: str):
+def get_user_account_by_id(id: str):
     with Session(engine) as session:
         user_account = session.get(UserAccount, id)
         return user_account
@@ -78,7 +78,6 @@ def patch_user_account(user_account: UserAccount):
     with Session(engine) as session:
         session.merge(user_account)
         session.commit()
-        session.refresh(user_account)
         return user_account
 #endregion
 

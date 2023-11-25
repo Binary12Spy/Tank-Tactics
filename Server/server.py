@@ -2,26 +2,38 @@ from typing import Optional
 from fastapi import FastAPI, Response, Request, WebSocket
 from pydantic import BaseModel
 
-from authenticator import *
 from useraccounts import *
 from game import *
 
 app = FastAPI()
 game_keeper = GameKeeper()
 
-class UserCredentials(BaseModel):
+class Credentials(BaseModel):
     username: str
     password: str
 
-class UpdatedUser(BaseModel):
+class UserAccount(BaseModel):
+    id: Optional[str]
     username: Optional[str]
     password: Optional[str]
     color_primary: Optional[str]
     color_secondary: Optional[str]
+    is_admin: Optional[bool]
+    
+class PlayerProfile(BaseModel):
+    id: Optional[str]
+    health: Optional[int]
+    action_tokens: Optional[int]
+    range: Optional[int]
+    is_alive: Optional[bool]
+    has_voted: Optional[bool]
+    received_votes: Optional[int]
+    location_x: Optional[int]
+    location_y: Optional[int]
 
-#region REST API Endpoints
+#region UserAccount Endpoints
 @app.post("/register", tags=["Authentication"])
-def register(user: UserCredentials, response: Response):
+def register(user: Credentials, response: Response):
     result = register_user_account(user.username, user.password)
     if not result:
         return False
@@ -30,7 +42,7 @@ def register(user: UserCredentials, response: Response):
     return True
 
 @app.post("/authenticate", tags=["Authentication"])
-def authenticate(credentials: UserCredentials, response: Response):
+def authenticate(credentials: Credentials, response: Response):
     token = authenticate_user(credentials.username, credentials.password)
     if not token:
         return False
@@ -46,12 +58,49 @@ def get_user(request: Request):
     return user_account
 
 @app.patch("/user", tags=["Account"])
-def update_user(request: Request, updated_user: UpdatedUser):
+def update_user(request: Request, updated_user: UserAccount):
     user_id = verify_token(str(request.cookies.get("token")))
     if not user_id:
         return False
     update_user_account(user_id, updated_user)
     return get_user_account(user_id)
+#endregion
+
+#region Admin Endpoints
+@app.get("/admin/user", tags=["Admin"])
+def get_user(request: Request, id: str):
+    print(str(request.cookies.get("token")))
+    user_id = verify_token(str(request.cookies.get("token")))
+    if not user_id or not is_admin(user_id):
+        return False
+    if not id:
+        return False
+    user_account = get_user_account(id)
+    return user_account
+
+@app.patch("/admin/user", tags=["Admin"])
+def update_user(request: Request, updated_user: UserAccount):
+    user_id = verify_token(str(request.cookies.get("token")))
+    if not is_admin(user_id) or not user_id:
+        return False
+    patch_user_account(updated_user.id, updated_user)
+    return get_user_account(updated_user.id)
+
+@app.get("/admin/users", tags=["Admin"])
+def get_users(request: Request):
+    user_id = verify_token(str(request.cookies.get("token")))
+    if not is_admin(user_id) or not user_id:
+        return False
+    users = get_user_accounts()
+    return users
+
+@app.delete("/user", tags=["Account"])
+def delete_user(id: str, request: Request):
+    user_id = verify_token(str(request.cookies.get("token")))
+    if not user_id or not is_admin(user_id):
+        return False
+    delete_user_account(id)
+    return True
 #endregion
 
 #region Game Endpoints
