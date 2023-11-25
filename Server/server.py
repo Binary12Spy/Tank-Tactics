@@ -1,4 +1,5 @@
 import os
+import uvicorn
 from typing import Optional
 from fastapi import FastAPI, Response, Request, WebSocket
 from pydantic import BaseModel
@@ -130,3 +131,6 @@ async def websocket_endpoint(websocket: WebSocket):
     except:
         await game_keeper.disconnect(user_id)
 #endregion
+
+if __name__ == "__main__":
+    uvicorn.run("server:app", host="0.0.0.0", port=int(SERVER_PORT), reload=True)
