@@ -1,11 +1,15 @@
-from datetime import datetime, timezone, timedelta
+import os
 import bcrypt
 import jwt
+from datetime import datetime, timezone, timedelta
+from dotenv import load_dotenv
 
 import db
 
-jwt_secret = "secret"
-jwt_exp = 4 # hours
+# Load the environment variables
+load_dotenv()
+JWT_SECRET = os.environ.get("JWT_SECRET")
+JWT_EXPIRES_IN = os.environ.get("JWT_EXPIRES_IN") # In hours
 
 #region Account Authentication
 def authenticate_user(username: str, password: str):
@@ -17,7 +21,7 @@ def authenticate_user(username: str, password: str):
 
 def verify_token(user_token):
     try:
-        token = jwt.decode(user_token, jwt_secret, algorithms=["HS256"])
+        token = jwt.decode(user_token, JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         return False
     except jwt.InvalidTokenError:
@@ -38,8 +42,8 @@ def verify_password(password: str, hashed_password: str):
 
 def generate_token(user_id):
     token_json = {
-        "exp": datetime.now(tz=timezone.utc) + timedelta(hours=jwt_exp),
+        "exp": datetime.now(tz=timezone.utc) + timedelta(hours=int(JWT_EXPIRES_IN)),
         "user_id": user_id
     }
-    return jwt.encode(token_json, jwt_secret, algorithm="HS256")
+    return jwt.encode(token_json, JWT_SECRET, algorithm="HS256")
 #endregion

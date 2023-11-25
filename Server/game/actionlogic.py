@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from db import *
 
+#region Models
 class Action(Enum):
     MOVE = "move"
     ATTACK = "attack"
@@ -16,6 +17,7 @@ class ActionModel(BaseModel):
     target_x: Optional[int] = None
     target_y: Optional[int] = None
     target_id: Optional[str] = None
+#endregion
 
 async def HandleAction(user_id, message: ActionModel):
     match message.action:
@@ -29,7 +31,8 @@ async def HandleAction(user_id, message: ActionModel):
             return HandleDonate(user_id, message)
         case Action.VOTE:
             return HandleVote(user_id, message)
-            
+
+#region Action Handlers      
 def HandleMove(user_id, message: ActionModel):
     return True
 
@@ -44,3 +47,4 @@ def HandleDonate(user_id, message: ActionModel):
 
 def HandleVote(user_id, message: ActionModel):
     return True
+#endregion

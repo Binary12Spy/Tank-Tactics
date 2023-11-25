@@ -1,6 +1,8 @@
+import os
 from typing import Optional
 from fastapi import FastAPI, Response, Request, WebSocket
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
 from useraccounts import *
 from game import *
@@ -8,6 +10,11 @@ from game import *
 app = FastAPI()
 game_keeper = GameKeeper()
 
+#Load Environment Variables
+load_dotenv()
+SERVER_PORT = os.environ.get("SERVER_PORT")
+
+#region FastAPI Data Models
 class Credentials(BaseModel):
     username: str
     password: str
@@ -30,6 +37,7 @@ class PlayerProfile(BaseModel):
     received_votes: Optional[int]
     location_x: Optional[int]
     location_y: Optional[int]
+#endregion
 
 #region UserAccount Endpoints
 @app.post("/register", tags=["Authentication"])
@@ -83,7 +91,7 @@ def update_user(request: Request, updated_user: UserAccount):
     user_id = verify_token(str(request.cookies.get("token")))
     if not is_admin(user_id) or not user_id:
         return False
-    patch_user_account(updated_user.id, updated_user)
+    update_user_account(updated_user.id, updated_user)
     return get_user_account(updated_user.id)
 
 @app.get("/admin/users", tags=["Admin"])
@@ -104,17 +112,6 @@ def delete_user(id: str, request: Request):
 #endregion
 
 #region Game Endpoints
-@app.post("/game/start", tags=["Game"])
-def start_game(request: Request):
-    user_id = verify_token(str(request.cookies.get("token")))
-    if not user_id:
-        return False
-    user = get_user_account(user_id)
-    if not user.admin:
-        return False
-    game_keeper.place_players_on_board()
-    return True
-
 @app.websocket("/game")
 async def websocket_endpoint(websocket: WebSocket):
     user_id = verify_token(str(websocket.cookies.get("token")))

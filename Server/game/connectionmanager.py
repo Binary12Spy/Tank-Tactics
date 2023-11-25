@@ -4,7 +4,8 @@ from fastapi import WebSocket
 class ConnectionManager:
     def __init__(self):
         self.connections = {}
-        
+
+#region Primary Connection Functions
     async def connect(self, websocket: WebSocket, user_id: int):
         await websocket.accept()
         self.connections[user_id] = websocket
@@ -16,7 +17,9 @@ class ConnectionManager:
             except:
                 pass
             del self.connections[user_id]
-        
+#endregion
+
+#region Message Sending Functions
     async def send_personal_message(self, message: str, user_id: int):
         await self.connections[user_id].send_text(message)
         
@@ -26,5 +29,6 @@ class ConnectionManager:
                 await connection.send_text(message)
             except Exception as e:
                 print(f"Failed to send message: {e}")
-
         await asyncio.gather(*(send_message(connection) for connection in self.connections.values()))
+        
+#endregion

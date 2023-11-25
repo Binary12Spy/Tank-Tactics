@@ -110,9 +110,9 @@ def get_player_at_coordinates(x: int, y: int):
     with Session(engine) as session:
         player = session.query(Player).filter(Player.location_x == x).filter(Player.location_y == y).first()
         return player
-    
 #endregion
 
+# Create the database and tables if they don't already exist
 try:
     create_db_and_tables()
 except:
