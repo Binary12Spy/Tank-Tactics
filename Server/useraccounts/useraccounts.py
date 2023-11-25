@@ -12,14 +12,14 @@ def register_user_account(username, password):
     return db.create_user_account(username, hash_password(password), str(uuid4()))
 
 def update_user_account(id, updated_user):
-    user = get_user_account(id)
+    user = db.get_user_account_by_id(id)
     if not user:
         return False
-    user.username = updated_user.username
+    user.username = updated_user.username or user.username
     if updated_user.password:
         user.passphrase = hash_password(updated_user.password)
-    user.color_primary = updated_user.color_primary
-    user.color_secondary = updated_user.color_secondary
+    user.color_primary = updated_user.color_primary or user.color_primary
+    user.color_secondary = updated_user.color_secondary or user.color_secondary
     db.patch_user_account(user)
     return True
 
