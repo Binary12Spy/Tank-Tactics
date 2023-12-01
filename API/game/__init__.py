@@ -1,2 +1,2 @@
-from game.connectionmanager import ConnectionManager
-from game.gamekeeper import GameKeeper
+from API.game.connectionmanager import ConnectionManager
+from API.game.gamekeeper import GameKeeper

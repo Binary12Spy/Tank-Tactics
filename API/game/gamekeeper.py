@@ -1,7 +1,7 @@
-import db
-from game.connectionmanager import ConnectionManager
-from game import actionlogic
-from game.actionlogic import ActionModel
+import API.db as db
+from API.game.connectionmanager import ConnectionManager
+from API.game import actionlogic
+from API.game.actionlogic import ActionModel
 
 class GameKeeper:
     def __init__(self):

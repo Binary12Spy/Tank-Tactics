@@ -1,7 +1,7 @@
 from uuid import uuid4
 
-import db
-from useraccounts.authentication import hash_password
+import API.db as db
+from API.useraccounts.authentication import hash_password
 
 #region UserAccount Management
 def register_user_account(username, password):

@@ -4,7 +4,7 @@ import jwt
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
-import db
+import API.db as db
 
 # Load the environment variables
 load_dotenv()
