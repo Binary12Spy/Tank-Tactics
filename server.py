@@ -1,7 +1,10 @@
 import os
 import uvicorn
+import starlette.status as status
 from typing import Optional
-from fastapi import FastAPI, Response, Request, WebSocket
+from fastapi import FastAPI, Form, Response, Request, WebSocket, HTTPException
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -20,6 +23,9 @@ DEBUG = (os.getenv('DEBUG', 'False') == 'True')
 class Credentials(BaseModel):
     username: str
     password: str
+    
+class gid_token(BaseModel):
+    pass
 
 class UserAccount(BaseModel):
     id: Optional[str]
@@ -48,22 +54,22 @@ def register(user: Credentials, response: Response):
     if not result:
         return False
     token = generate_token(result.id)
-    response.set_cookie(key="token", value=token)
+    response.set_cookie(key="tank-tactics_token", value=token)
     return True
 
 @app.post("/authenticate", tags=["Authentication"])
 def authenticate(credentials: Credentials, response: Response):
     token = authenticate_user(credentials.username, credentials.password)
     if not token:
-        return False
-    response.set_cookie(key="token", value=token)
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    response.set_cookie(key="tank-tactics_token", value=token)
     return True
 
 @app.get("/user", tags=["Account"])
 def get_user(request: Request):
     user_id = verify_token(str(request.cookies.get("token")))
     if not user_id:
-        return False
+        raise HTTPException(status_code=401, detail="Authentication failed")
     user_account = get_user_account(user_id)
     return user_account
 
@@ -71,9 +77,20 @@ def get_user(request: Request):
 def update_user(request: Request, updated_user: UserAccount):
     user_id = verify_token(str(request.cookies.get("token")))
     if not user_id:
-        return False
+        raise HTTPException(status_code=401, detail="Authentication failed")
     update_user_account(user_id, updated_user)
     return get_user_account(user_id)
+
+@app.post("/sign-in-with-google", tags=["Account"])
+def gid_login(response: Response, credential: str = Form(...), g_csrf_token: str = Form(...)):
+    if not authenticate_google_id_token(credential):
+        raise HTTPException(status_code=401)
+    google_account_info = get_google_user_info(credential)
+    user_id = google_user_account(google_account_info)
+    token = generate_token(user_id)
+    response = RedirectResponse(url="/game", status_code=status.HTTP_302_FOUND)
+    response.set_cookie(key="tank-tactics_token", value=token)
+    return response
 #endregion
 
 #region Game Management Endpoints
@@ -130,6 +147,26 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             await game_keeper.handle_message(player_id, data)
     except:
         await game_keeper.disconnect(player_id)
+#endregion
+
+#region Webserver Endpoints
+app.mount("/static", StaticFiles(directory="UI"), name="static")
+
+@app.get("/favicon.ico")
+async def get_favicon():
+    return FileResponse("UI/favicon.ico")
+
+@app.get("/login")
+async def get_login():
+    return FileResponse("UI/Account/login.html")
+
+@app.get("/register")
+async def get_register():
+    return FileResponse("UI/Account/register.html")
+
+@app.get("/game")
+async def get_game():
+    return FileResponse("UI/Game/game.html")
 #endregion
 
 if __name__ == "__main__":

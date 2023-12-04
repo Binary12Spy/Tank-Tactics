@@ -20,7 +20,8 @@ class UserAccount(SQLModel, table=True):
     
     id: str = Field(primary_key=True)
     username: str = Field(index=True)
-    hashed_password: str
+    hashed_password: str = Field(nullable=True)
+    g_id: str = Field(default=None, nullable=True, index=True)
     color_primary: str = "#" + hex(random.randrange(0, 2**24))[2:].upper()
     color_secondary: str = "#" + hex(random.randrange(0, 2**24))[2:].upper()
     
@@ -67,9 +68,9 @@ def get_user_accounts():
         user_accounts = session.query(UserAccount).all()
         return user_accounts
 
-def create_user_account(username: str, passphrase: str, id: str):
+def create_user_account(username: str, hashed_password: str, id: str):
     with Session(engine) as session:
-        user_account = UserAccount(username=username, passphrase=passphrase, id=id)
+        user_account = UserAccount(username=username, hashed_password=hashed_password, id=id)
         session.add(user_account)
         session.commit()
         session.refresh(user_account)
@@ -79,6 +80,19 @@ def patch_user_account(user_account: UserAccount):
     with Session(engine) as session:
         session.merge(user_account)
         session.commit()
+        return user_account
+    
+def get_user_account_by_google_id(g_id: str):
+    with Session(engine) as session:
+        user_account = session.query(UserAccount).filter(UserAccount.g_id == g_id).first()
+        return user_account
+    
+def create_user_account_with_google_id(g_id: str, id: str, username: str):
+    with Session(engine) as session:
+        user_account = UserAccount(g_id=g_id, id=id, username=username)
+        session.add(user_account)
+        session.commit()
+        session.refresh(user_account)
         return user_account
 #endregion
 
