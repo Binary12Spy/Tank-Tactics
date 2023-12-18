@@ -23,9 +23,6 @@ DEBUG = (os.getenv('DEBUG', 'False') == 'True')
 class Credentials(BaseModel):
     username: str
     password: str
-    
-class gid_token(BaseModel):
-    pass
 
 class UserAccount(BaseModel):
     id: Optional[str]
@@ -47,7 +44,16 @@ class PlayerProfile(BaseModel):
     location_y: Optional[int]
 #endregion
 
-#region UserAccount Endpoints
+@app.get("/")
+def root(request: Request):
+    if request.cookies.get("token") is None:
+        response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+        return response
+    else:
+        response = RedirectResponse(url="/game", status_code=status.HTTP_302_FOUND)
+        return response
+
+#region Authentication Endpoints
 @app.post("/register", tags=["Authentication"])
 def register(user: Credentials, response: Response):
     result = register_user_account(user.username, user.password)
@@ -65,6 +71,19 @@ def authenticate(credentials: Credentials, response: Response):
     response.set_cookie(key="tank-tactics_token", value=token)
     return True
 
+@app.post("/sign-in-with-google", tags=["Account"])
+def gid_login(response: Response, credential: str = Form(...), g_csrf_token: str = Form(...)):
+    if not authenticate_google_id_token(credential):
+        raise HTTPException(status_code=401)
+    google_account_info = get_google_user_info(credential)
+    user_id = google_user_account(google_account_info)
+    token = generate_token(user_id)
+    response = RedirectResponse(url="/game", status_code=status.HTTP_302_FOUND)
+    response.set_cookie(key="tank-tactics_token", value=token)
+    return response
+#endregion
+
+#region Account Management Endpoints
 @app.get("/user", tags=["Account"])
 def get_user(request: Request):
     user_id = verify_token(str(request.cookies.get("token")))
@@ -80,17 +99,6 @@ def update_user(request: Request, updated_user: UserAccount):
         raise HTTPException(status_code=401, detail="Authentication failed")
     update_user_account(user_id, updated_user)
     return get_user_account(user_id)
-
-@app.post("/sign-in-with-google", tags=["Account"])
-def gid_login(response: Response, credential: str = Form(...), g_csrf_token: str = Form(...)):
-    if not authenticate_google_id_token(credential):
-        raise HTTPException(status_code=401)
-    google_account_info = get_google_user_info(credential)
-    user_id = google_user_account(google_account_info)
-    token = generate_token(user_id)
-    response = RedirectResponse(url="/game", status_code=status.HTTP_302_FOUND)
-    response.set_cookie(key="tank-tactics_token", value=token)
-    return response
 #endregion
 
 #region Game Management Endpoints
@@ -108,9 +116,7 @@ def join_game(request: Request, lobby_id: str):
     if not user_id:
         return False
     game_keeper.join_game(user_id, lobby_id)
-#endregion
-
-#region Admin Endpoints
+    
 @app.delete("/game/{game_id}", tags=["Game Management", "Admin"])
 def delete_game(request: Request, game_id: str):
     user_id = verify_token(str(request.cookies.get("token")))

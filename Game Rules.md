@@ -1,7 +1,7 @@
 ## Tank Tactics
 
 ### Gameplay
-Game board is a grid of X*Y size  
+Game board is a grid of (X) by (Y) size  
 Any size is acceptable
 
 At the beginning of the game player's tanks are placed randomly on the board  
